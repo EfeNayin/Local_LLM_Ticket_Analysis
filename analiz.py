@@ -1,19 +1,7 @@
-"""
-analiz.py — Ticket verisini analiz eder, sonuçları JSON'a kaydeder.
-
-Bu script pandas ile tüm sayısal analizi yapar ve sonucu
-analiz_sonuclari.json dosyasına yazar. LLM yorumlama scripti
-(yorumla.py) ve dashboard bu dosyayı okur.
-
-Boylece pandas hesabi bir kez yapilir, tekrar tekrar calistirilmaz.
-"""
-
 import json
 import pandas as pd
 
-# =====================================================================
 # VERIYI OKU VE KATEGORILE
-# =====================================================================
 
 df = pd.read_csv("20k_ariza_ticket.csv", sep=";")
 metin = df["ARIZA_NEDENI"].str.lower()
@@ -42,17 +30,13 @@ for ad, desen in kategoriler:
     eslesme = metin.str.contains(desen, na=False)
     df.loc[etiketsiz & eslesme, "kategori"] = ad
 
-# Tarih dönüşümü (saniye yok: %H:%M)
+
 df["tarih"] = pd.to_datetime(
     df["ARIZA_ACILIS_TARIHI"],
     format="%d.%m.%Y %H:%M",
     errors="coerce",
 )
 
-
-# =====================================================================
-# SONUÇLARI SÖZLÜĞE TOPLA
-# =====================================================================
 
 sonuc = {}
 
@@ -69,7 +53,7 @@ sonuc["ariza_turleri"] = {
     "toplam_tur": len(kategori_dagilimi),
 }
 
-# --- Soru 3: Cihaz (OLT) ---
+# --- Soru 3: Cihaz (OLT)  ---
 olt_dagilimi = df["OLT_ADI"].value_counts()
 sonuc["cihaz"] = {
     "toplam_olt": int(df["OLT_ADI"].nunique()),
@@ -114,14 +98,12 @@ sonuc["ozet"] = {
 }
 
 
-# =====================================================================
-# JSON'A KAYDET + ETIKETLI VERIYI KAYDET
-# =====================================================================
+# JSON'A + ETIKETLI VERIYI KAYDET
+
 
 with open("analiz_sonuclari.json", "w", encoding="utf-8") as f:
     json.dump(sonuc, f, ensure_ascii=False, indent=2, default=str)
 
-# Dashboard'un ham veriye erişebilmesi için etiketli CSV
 df.to_csv("etiketli_ticketlar.csv", sep=";", index=False, encoding="utf-8")
 
 print("Analiz tamamlandi.")
@@ -135,5 +117,3 @@ print(f"  En cok ariza    : {sonuc['ariza_turleri']['en_cok']['kategori']} "
 print(f"  En sorunlu OLT  : {sonuc['cihaz']['en_cok']['olt']}")
 print(f"  Gunluk ortalama : {sonuc['zaman']['gunluk_ortalama']}")
 print(f"  Anormal gun     : {sonuc['zaman']['anormal_gun_sayisi']}")
-print()
-print("Sonraki adim (VM'de): python yorumla.py")

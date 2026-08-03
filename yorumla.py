@@ -1,35 +1,3 @@
-"""
-yorumla.py — Analiz sonuçlarını yerel LLM'e (Ollama/Qwen) yorumlatır.
-
-Bu script analiz_sonuclari.json dosyasını okur, içindeki sayısal
-özetleri Qwen modeline sunar ve task'ın beş sorusuna karşılık gelen
-yorumları üretir. Sonuç llm_yorumlari.json dosyasına yazılır.
-
-ÖNEMLİ: Bu script VM'de çalışmalıdır çünkü Ollama orada kuruludur.
-Çalıştırmadan önce Ollama'nın açık olduğundan emin olun:
-    ollama list
-
-Çalıştırma:
-    python yorumla.py
-
-Not: Model CPU üzerinde çalıştığı için her soru 1-3 dakika sürebilir.
-Toplam 5-15 dakika.
-
----
-PROMPT TASARIMI HAKKINDA:
-
-Yöneticinin istediği "prompt tasarımı" tam olarak bu dosyadadır.
-Her prompt üç parçadan oluşur:
-  1. ROL: Modele kim olduğunu söyler ("Sen bir şebeke analistisin")
-  2. VERİ: Pandas'ın hesapladığı sayıları sunar
-  3. GÖREV + KISIT: Ne isteneceğini ve sınırları belirtir
-     (kaç kelime, hangi dil, hangi format)
-
-Modele Türkçe çıktı isterken talimatı İngilizce vermek, küçük
-modellerde daha tutarlı sonuç verir. Türkçe talimatlarda 3B model
-bazen talimatı çıktıya karıştırır.
-"""
-
 import json
 import ollama
 
@@ -42,7 +10,6 @@ def sonuclari_oku():
 
 
 def tablo(sozluk, limit=12):
-    """Sözlüğü modele sunmak için okunabilir metne çevirir."""
     satirlar = []
     for i, (k, v) in enumerate(sozluk.items()):
         if i >= limit:
@@ -52,12 +19,11 @@ def tablo(sozluk, limit=12):
 
 
 def llm_sor(baslik, prompt):
-    """Modele tek bir soru sorar, cevabı döndürür."""
     print(f"  -> {baslik} ... ", end="", flush=True)
     yanit = ollama.chat(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.3},  # düşük = daha tutarlı, az yaratıcı
+        options={"temperature": 0.3},
     )
     metin = yanit["message"]["content"].strip()
     print(f"tamam ({len(metin)} karakter)")
@@ -161,7 +127,7 @@ words. Write only the analysis, no preamble."""
 
 
 # =====================================================================
-# SORU 5 — Kök neden değerlendirmesi (asıl LLM işi burada)
+# SORU 5 — Kök neden değerlendirmesi
 # =====================================================================
 
 def soru5(s):
@@ -198,9 +164,8 @@ Write only the assessment, no preamble."""
     return llm_sor("Soru 5: Kok neden", prompt)
 
 
-# =====================================================================
-# ANA AKIŞ
-# =====================================================================
+
+# Main Flow
 
 if __name__ == "__main__":
     print("LLM yorumlama basliyor...")
@@ -221,7 +186,6 @@ if __name__ == "__main__":
 
     print("\nTamamlandi -> llm_yorumlari.json\n")
 
-    # Ekrana da bas
     basliklar = {
         "soru1": "1. GELEN ARIZA TURLERI",
         "soru2": "2. EN COK ARIZA TURU",
