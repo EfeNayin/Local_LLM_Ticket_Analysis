@@ -3,7 +3,6 @@ import ollama
 
 MODEL = "qwen2.5:3b"
 
-
 def sonuclari_oku():
     with open("analiz_sonuclari.json", encoding="utf-8") as f:
         return json.load(f)
@@ -164,7 +163,6 @@ Write only the assessment, no preamble."""
     return llm_sor("Soru 5: Kok neden", prompt)
 
 
-
 # Main Flow
 
 if __name__ == "__main__":
@@ -193,6 +191,7 @@ if __name__ == "__main__":
         "soru4": "4. ZAMAN ANALIZI",
         "soru5": "5. KOK NEDEN DEGERLENDIRMESI",
     }
+    
     for anahtar, baslik in basliklar.items():
         print("=" * 60)
         print(baslik)
