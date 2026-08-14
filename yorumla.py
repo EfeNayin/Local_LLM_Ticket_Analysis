@@ -3,154 +3,154 @@ import ollama
 
 MODEL = "qwen2.5:3b"
 
-def sonuclari_oku():
+def read_results():
     with open("analiz_sonuclari.json", encoding="utf-8") as f:
         return json.load(f)
 
 
-def tablo(sozluk, limit=12):
-    satirlar = []
-    for i, (k, v) in enumerate(sozluk.items()):
+def format_table(dictionary, limit=12):
+    rows = []
+    for i, (k, v) in enumerate(dictionary.items()):
         if i >= limit:
             break
-        satirlar.append(f"  {k}: {v}")
-    return "\n".join(satirlar)
+        rows.append(f"  {k}: {v}")
+    return "\n".join(rows)
 
 
-def llm_sor(baslik, prompt):
-    print(f"  -> {baslik} ... ", end="", flush=True)
-    yanit = ollama.chat(
+def ask_llm(title, prompt):
+    print(f"  -> {title} ... ", end="", flush=True)
+    response = ollama.chat(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
         options={"temperature": 0.3},
     )
-    metin = yanit["message"]["content"].strip()
-    print(f"tamam ({len(metin)} karakter)")
-    return metin
+    text = response["message"]["content"].strip()
+    print(f"done ({len(text)} characters)")
+    return text
 
 
 # =====================================================================
-# SORU 1 — Gelen arıza türleri nelerdir?
+# QUESTION 1 — What are the incoming fault types?
 # =====================================================================
 
-def soru1(s):
-    at = s["ariza_turleri"]
+def question1(s):
+    ft = s["ariza_turleri"]
     prompt = f"""You are a fiber optic network operations analyst.
 
 Below is the fault type distribution from {s['ozet']['toplam_kayit']:,} support tickets:
 
-{tablo(at['dagilim'])}
+{format_table(ft['dagilim'])}
 
 Percentages:
-{tablo(at['yuzde'])}
+{format_table(ft['yuzde'])}
 
-TASK: Write a summary in TURKISH describing the fault types in this network.
+TASK: Write a summary in ENGLISH describing the fault types in this network.
 Group related types where sensible. State which types dominate and which are
 marginal. Be factual. Maximum 180 words. Write only the analysis, no preamble."""
-    return llm_sor("Soru 1: Ariza turleri", prompt)
+    return ask_llm("Question 1: Fault types", prompt)
 
 
 # =====================================================================
-# SORU 2 — En çok hangi arıza türü?
+# QUESTION 2 — Which fault type is the most common?
 # =====================================================================
 
-def soru2(s):
-    at = s["ariza_turleri"]
+def question2(s):
+    ft = s["ariza_turleri"]
     prompt = f"""You are a network operations analyst.
 
 The most common fault type is:
-  {at['en_cok']['kategori']} — {at['en_cok']['adet']:,} tickets ({at['en_cok']['yuzde']}%)
+  {ft['en_cok']['kategori']} — {ft['en_cok']['adet']:,} tickets ({ft['en_cok']['yuzde']}%)
 
 Full distribution:
-{tablo(at['dagilim'])}
+{format_table(ft['dagilim'])}
 
-Total distinct fault types: {at['toplam_tur']}
+Total distinct fault types: {ft['toplam_tur']}
 
-TASK: Write a short analysis in TURKISH. Is the distribution dominated by one
+TASK: Write a short analysis in ENGLISH. Is the distribution dominated by one
 type or spread across many? What does this mean for where the operations team
 should focus? Maximum 130 words. Write only the analysis, no preamble."""
-    return llm_sor("Soru 2: En cok tur", prompt)
+    return ask_llm("Question 2: Most common type", prompt)
 
 
 # =====================================================================
-# SORU 3 — Hangi cihaz?
+# QUESTION 3 — Which device?
 # =====================================================================
 
-def soru3(s):
-    c = s["cihaz"]
+def question3(s):
+    d = s["cihaz"]
     prompt = f"""You are a network operations analyst examining OLT device faults.
 
-Total OLT devices: {c['toplam_olt']}
-Average faults per device: {c['ortalama']}
-Median faults per device: {c['medyan']}
+Total OLT devices: {d['toplam_olt']}
+Average faults per device: {d['ortalama']}
+Median faults per device: {d['medyan']}
 
-Most affected device: {c['en_cok']['olt']} with {c['en_cok']['adet']} faults
-({c['en_cok']['yuzde']}% of all tickets)
+Most affected device: {d['en_cok']['olt']} with {d['en_cok']['adet']} faults
+({d['en_cok']['yuzde']}% of all tickets)
 
 Top devices:
-{tablo(c['en_cok_20'], limit=10)}
+{format_table(d['en_cok_20'], limit=10)}
 
-TASK: Write an analysis in TURKISH. Note that the mean and median are almost
-equal ({c['ortalama']} vs {c['medyan']}) and even the worst device holds under
+TASK: Write an analysis in ENGLISH. Note that the mean and median are almost
+equal ({d['ortalama']} vs {d['medyan']}) and even the worst device holds under
 1% of tickets. What does this say about fault distribution across devices — is
 it concentrated or homogeneous? Maximum 160 words. Write only the analysis."""
-    return llm_sor("Soru 3: Cihaz", prompt)
+    return ask_llm("Question 3: Device analysis", prompt)
 
 
 # =====================================================================
-# SORU 4 — Yoğun tarih?
+# QUESTION 4 — Busiest dates?
 # =====================================================================
 
-def soru4(s):
-    z = s["zaman"]
+def question4(s):
+    t = s["zaman"]
     prompt = f"""You are a network operations analyst examining fault timing.
 
-Date range: {z['baslangic']} to {z['bitis']}
-Daily average: {z['gunluk_ortalama']} faults, standard deviation: {z['gunluk_std']}
+Date range: {t['baslangic']} to {t['bitis']}
+Daily average: {t['gunluk_ortalama']} faults, standard deviation: {t['gunluk_std']}
 
 Busiest 10 days:
-{tablo(z['en_yogun_10_gun'])}
+{format_table(t['en_yogun_10_gun'])}
 
 Monthly totals:
-{tablo(z['aylik'])}
+{format_table(t['aylik'])}
 
-Anomaly threshold (mean + 2 std): {z['anomali_esigi']} faults/day
-Days above threshold: {z['anormal_gun_sayisi']}
+Anomaly threshold (mean + 2 std): {t['anomali_esigi']} faults/day
+Days above threshold: {t['anormal_gun_sayisi']}
 
-TASK: Write an analysis in TURKISH. The standard deviation ({z['gunluk_std']})
-is small relative to the mean ({z['gunluk_ortalama']}), and only
-{z['anormal_gun_sayisi']} days exceed the anomaly threshold. Does the data show
+TASK: Write an analysis in ENGLISH. The standard deviation ({t['gunluk_std']})
+is small relative to the mean ({t['gunluk_ortalama']}), and only
+{t['anormal_gun_sayisi']} days exceed the anomaly threshold. Does the data show
 temporal clustering or is it homogeneous? Is there a crisis period? Maximum 180
 words. Write only the analysis, no preamble."""
-    return llm_sor("Soru 4: Zaman", prompt)
+    return ask_llm("Question 4: Time analysis", prompt)
 
 
 # =====================================================================
-# SORU 5 — Kök neden değerlendirmesi
+# QUESTION 5 — Root cause assessment
 # =====================================================================
 
-def soru5(s):
-    at = s["ariza_turleri"]
-    c = s["cihaz"]
-    z = s["zaman"]
+def question5(s):
+    ft = s["ariza_turleri"]
+    d = s["cihaz"]
+    t = s["zaman"]
     prompt = f"""You are a senior network operations analyst writing a root cause
 assessment for management.
 
 KEY FINDINGS:
 
-Fault types ({at['toplam_tur']} categories, {s['ozet']['toplam_kayit']:,} tickets):
-{tablo(at['dagilim'], limit=10)}
-Dominant: {at['en_cok']['kategori']} at {at['en_cok']['yuzde']}%
+Fault types ({ft['toplam_tur']} categories, {s['ozet']['toplam_kayit']:,} tickets):
+{format_table(ft['dagilim'], limit=10)}
+Dominant: {ft['en_cok']['kategori']} at {ft['en_cok']['yuzde']}%
 
-Devices: {c['toplam_olt']} OLTs, mean {c['ortalama']} / median {c['medyan']} faults each.
-Distribution is homogeneous — worst device holds only {c['en_cok']['yuzde']}%.
+Devices: {d['toplam_olt']} OLTs, mean {d['ortalama']} / median {d['medyan']} faults each.
+Distribution is homogeneous — worst device holds only {d['en_cok']['yuzde']}%.
 
-Timing: {z['baslangic']} to {z['bitis']}, daily average {z['gunluk_ortalama']}
-(std {z['gunluk_std']}). Only {z['anormal_gun_sayisi']} anomalous days.
+Timing: {t['baslangic']} to {t['bitis']}, daily average {t['gunluk_ortalama']}
+(std {t['gunluk_std']}). Only {t['anormal_gun_sayisi']} anomalous days.
 No temporal clustering.
 
-TASK: Write a root cause assessment in TURKISH covering:
-1. What could explain the dominance of {at['en_cok']['kategori']} faults?
+TASK: Write a root cause assessment in ENGLISH covering:
+1. What could explain the dominance of {ft['en_cok']['kategori']} faults?
 2. Given faults are spread evenly across devices AND time (no hotspots, no
    crisis periods), what does this suggest about the nature of the faults —
    systemic/structural versus incident-driven?
@@ -160,41 +160,41 @@ IMPORTANT: Frame causes as HYPOTHESES, not conclusions. Ticket data shows
 correlation, not causation. Note what additional data (device age, firmware,
 subscriber count per OLT) would be needed to confirm. Maximum 400 words.
 Write only the assessment, no preamble."""
-    return llm_sor("Soru 5: Kok neden", prompt)
+    return ask_llm("Question 5: Root cause", prompt)
 
 
 # Main Flow
 
 if __name__ == "__main__":
-    print("LLM yorumlama basliyor...")
-    print(f"Model: {MODEL} (CPU, her soru 1-3 dk surebilir)\n")
+    print("LLM interpretation is starting...")
+    print(f"Model: {MODEL} (CPU, each question may take 1-3 mins)\n")
 
-    s = sonuclari_oku()
+    s = read_results()
 
-    yorumlar = {
-        "soru1": soru1(s),
-        "soru2": soru2(s),
-        "soru3": soru3(s),
-        "soru4": soru4(s),
-        "soru5": soru5(s),
+    analyses = {
+        "question1": question1(s),
+        "question2": question2(s),
+        "question3": question3(s),
+        "question4": question4(s),
+        "question5": question5(s),
     }
 
-    with open("llm_yorumlari.json", "w", encoding="utf-8") as f:
-        json.dump(yorumlar, f, ensure_ascii=False, indent=2)
+    with open("llm_analyses.json", "w", encoding="utf-8") as f:
+        json.dump(analyses, f, ensure_ascii=False, indent=2)
 
-    print("\nTamamlandi -> llm_yorumlari.json\n")
+    print("\nCompleted -> llm_analyses.json\n")
 
-    basliklar = {
-        "soru1": "1. GELEN ARIZA TURLERI",
-        "soru2": "2. EN COK ARIZA TURU",
-        "soru3": "3. CIHAZ ANALIZI",
-        "soru4": "4. ZAMAN ANALIZI",
-        "soru5": "5. KOK NEDEN DEGERLENDIRMESI",
+    headers = {
+        "question1": "1. INCOMING FAULT TYPES",
+        "question2": "2. MOST COMMON FAULT TYPE",
+        "question3": "3. DEVICE ANALYSIS",
+        "question4": "4. TIME ANALYSIS",
+        "question5": "5. ROOT CAUSE ASSESSMENT",
     }
     
-    for anahtar, baslik in basliklar.items():
+    for key, header in headers.items():
         print("=" * 60)
-        print(baslik)
+        print(header)
         print("=" * 60)
-        print(yorumlar[anahtar])
+        print(analyses[key])
         print()
